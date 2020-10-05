@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <Windows.h>
 
 #define	MOVE_DISTANCE	8
 
@@ -44,12 +45,12 @@ public:
 			oldTail = _tail->_segment.getPosition(),
 			tempPosition;
 		SnakeNode *tmp = nullptr;
+		std::vector<sf::Vector2f> validMoves;
 
 		// Move the head
-		while (!positionIsValid(newPosition))
+		for (int direction = 0; direction < 4; ++direction)
 		{
 			newPosition = oldPosition;
-			direction = rand() % 4;
 			switch (direction)
 			{
 			case 0: // Up
@@ -65,8 +66,54 @@ public:
 				newPosition.x += MOVE_DISTANCE;
 				break;
 			}
+			if (positionIsValid(newPosition))
+			{
+				validMoves.push_back(newPosition);
+			}
 		}
-		_head->_segment.setPosition(newPosition);
+
+		if (validMoves.size() == 0)
+		{
+			// Swap head and tail
+			tmp = _tail;
+			_tail->_next = _head->_next;
+			_head->_next->_prev = _tail;
+			_head->_next = nullptr;
+			_head->_prev = _tail->_prev;
+			_tail->_prev->_next = _head;
+			_tail->_prev = nullptr;
+			
+			_tail = _head;
+			_head = tmp;
+
+			oldPosition = _head->_segment.getPosition();
+
+			for (int direction = 0; direction < 4; ++direction)
+			{
+				newPosition = oldPosition;
+				switch (direction)
+				{
+				case 0: // Up
+					newPosition.y -= MOVE_DISTANCE; // (y axis is flipped. it's weird)
+					break;
+				case 1: // Down
+					newPosition.y += MOVE_DISTANCE;
+					break;
+				case 2: // Left
+					newPosition.x -= MOVE_DISTANCE;
+					break;
+				case 3: // Right
+					newPosition.x += MOVE_DISTANCE;
+					break;
+				}
+				if (positionIsValid(newPosition))
+				{
+					validMoves.push_back(newPosition);
+				}
+			}
+		}
+
+		_head->_segment.setPosition(validMoves.at(rand() % validMoves.size()));
 
 		// Move the rest of the body
 		tmp = _head->_next;
@@ -81,6 +128,7 @@ public:
 		if (_grow)
 		{
 			_tail->_next = new SnakeNode(oldTail);
+			_tail->_next->_prev = _tail;
 			_tail = _tail->_next;
 			_grow = false;
 		}
@@ -105,7 +153,8 @@ private:
 		SnakeNode() { _segment.setFillColor(sf::Color::Red); }
 		SnakeNode(sf::Vector2f pos) : SnakeNode() { _segment.setPosition(pos);  }
 		sf::RectangleShape _segment{ {10.f, 10.f} };
-		SnakeNode *_next{ nullptr };
+		SnakeNode *_prev{ nullptr },
+			*_next{ nullptr };
 	};
 
 	bool positionIsValid(sf::Vector2f &pos)
@@ -130,6 +179,9 @@ private:
 
 int main()
 {
+	HWND hWnd = GetConsoleWindow();
+	ShowWindow(hWnd, SW_HIDE);
+
 	sf::RenderWindow window(sf::VideoMode(400, 400), "Reverse Snake");
 	sf::RectangleShape player(sf::Vector2f(10.f, 10.f));
 	player.setFillColor(sf::Color::Green);
@@ -221,7 +273,10 @@ int main()
 	{
 		if (event.type == sf::Event::KeyPressed)
 		{
-			break;
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
+			{
+				break;
+			}
 		}
 	}
 
