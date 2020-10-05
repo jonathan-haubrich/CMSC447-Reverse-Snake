@@ -34,26 +34,25 @@ public:
 	void move()
 	{
 		int direction = rand() % 4;
-		sf::Vector2f newPosition = _head->_segment.getPosition();
-		SnakeNode *segment = nullptr;
+		SnakeNode *segment = new SnakeNode(_head->_segment.getPosition());
 
 		// Move the head
 		switch(direction)
 		{
 		case 0: // Up
-			newPosition.y -= MOVE_DISTANCE; // (y axis is flipped. it's weird)
+			segment->_segment.move(0, -MOVE_DISTANCE); // (y axis is flipped. it's weird)
 			break;
 		case 1: // Down
-			newPosition.y += MOVE_DISTANCE;
+			segment->_segment.move(0, MOVE_DISTANCE);
 			break;
 		case 2: // Left
-			newPosition.x -= MOVE_DISTANCE;
+			segment->_segment.move(-MOVE_DISTANCE, 0);
 			break;
 		case 3: // Right
-			newPosition.x += MOVE_DISTANCE;
+			segment->_segment.move(MOVE_DISTANCE, 0);
 			break;
 		}
-		segment = new SnakeNode(newPosition);
+
 		segment->_next = _head;
 		_head = segment;
 
@@ -113,23 +112,20 @@ int main()
 
 void movePlayer(sf::RectangleShape &shape)
 {
-	sf::Vector2f newPosition = shape.getPosition();
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
 	{
-		newPosition.x -= MOVE_DISTANCE;
+		shape.move(-MOVE_DISTANCE, 0);
 	}
 	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 	{
-		newPosition.x += MOVE_DISTANCE;
+		shape.move(MOVE_DISTANCE, 0 );
 	}
 	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
 	{
-		newPosition.y -= MOVE_DISTANCE;
+		shape.move(0, -MOVE_DISTANCE);
 	}
 	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
 	{
-		newPosition.y += MOVE_DISTANCE;
+		shape.move(0, MOVE_DISTANCE);
 	}
-
-	shape.setPosition(newPosition);
 }
