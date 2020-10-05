@@ -27,35 +27,21 @@ public:
 		while (tmp)
 		{
 			window.draw(tmp->_segment);
-			tmp = _head->_next;
+			tmp = tmp->_next;
 		}
-	}
-
-	void grow()
-	{
-		//SnakeNode* segment = new SnakeNode(_tail->_segment.getPosition());
-		//if (_head == _tail)
-		//{
-		//	_head->_next = segment;
-		//}
-		//else
-		//{
-		//	_tail->_next = segment;
-		//}
-		//_tail = segment;
 	}
 
 	void move()
 	{
 		int direction = rand() % 4;
-		sf::Vector2f oldPosition = _head->_segment.getPosition(),
-			newPosition = oldPosition;
+		sf::Vector2f newPosition = _head->_segment.getPosition();
+		SnakeNode *segment = nullptr;
 
 		// Move the head
 		switch(direction)
 		{
 		case 0: // Up
-			newPosition.y -= MOVE_DISTANCE; // (axes are flipped. it's weird)
+			newPosition.y -= MOVE_DISTANCE; // (y axis is flipped. it's weird)
 			break;
 		case 1: // Down
 			newPosition.y += MOVE_DISTANCE;
@@ -67,7 +53,9 @@ public:
 			newPosition.x += MOVE_DISTANCE;
 			break;
 		}
-		_head->_segment.setPosition(newPosition);
+		segment = new SnakeNode(newPosition);
+		segment->_next = _head;
+		_head = segment;
 
 		// Move the rest of the body
 		//SnakeNode *tmp = _head->_next;
@@ -109,7 +97,6 @@ int main()
 			if (event.type == sf::Event::KeyPressed)
 			{
 				movePlayer(shape);
-				snake.grow();
 				snake.move();
 			}
 
@@ -119,7 +106,6 @@ int main()
 		snake.draw(window);
 		window.draw(shape);
 		window.display();
-		snake.grow();
 	}
 
 	return 0;
