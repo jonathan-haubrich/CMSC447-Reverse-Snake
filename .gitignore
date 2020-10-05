@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/CMSC447 ReverseSnake/v15
+/CMSC447 ReverseSnake/Debug
+/CMSC447 ReverseSnake/x64/Release
+/x64/Release
