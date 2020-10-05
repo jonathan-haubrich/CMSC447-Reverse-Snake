@@ -38,30 +38,38 @@ public:
 
 	void move()
 	{
-		int direction = rand() % 4;
+		int direction = 0;
 		sf::Vector2f oldPosition = _head->_segment.getPosition(),
+			newPosition = oldPosition,
 			oldTail = _tail->_segment.getPosition(),
 			tempPosition;
-		SnakeNode *tmp = _head->_next;
+		SnakeNode *tmp = nullptr;
 
 		// Move the head
-		switch(direction)
+		while (!positionIsValid(newPosition))
 		{
-		case 0: // Up
-			_head->_segment.move(0, -MOVE_DISTANCE); // (y axis is flipped. it's weird)
-			break;
-		case 1: // Down
-			_head->_segment.move(0, MOVE_DISTANCE);
-			break;
-		case 2: // Left
-			_head->_segment.move(-MOVE_DISTANCE, 0);
-			break;
-		case 3: // Right
-			_head->_segment.move(MOVE_DISTANCE, 0);
-			break;
+			newPosition = oldPosition;
+			direction = rand() % 4;
+			switch (direction)
+			{
+			case 0: // Up
+				newPosition.y -= MOVE_DISTANCE; // (y axis is flipped. it's weird)
+				break;
+			case 1: // Down
+				newPosition.y += MOVE_DISTANCE;
+				break;
+			case 2: // Left
+				newPosition.x -= MOVE_DISTANCE;
+				break;
+			case 3: // Right
+				newPosition.x += MOVE_DISTANCE;
+				break;
+			}
 		}
+		_head->_segment.setPosition(newPosition);
 
 		// Move the rest of the body
+		tmp = _head->_next;
 		while (tmp)
 		{
 			tempPosition = tmp->_segment.getPosition();
@@ -78,6 +86,20 @@ public:
 		}
 	}
 
+	bool checkCollision(sf::RectangleShape const &shape)
+	{
+		SnakeNode *tmp = _head;
+		while (tmp)
+		{
+			if (tmp->_segment.getPosition() == shape.getPosition())
+			{
+				return true;
+			}
+			tmp = tmp->_next;
+		}
+		return false;
+	}
+
 private:
 	struct SnakeNode {
 		SnakeNode() { _segment.setFillColor(sf::Color::Red); }
@@ -85,6 +107,20 @@ private:
 		sf::RectangleShape _segment{ {10.f, 10.f} };
 		SnakeNode *_next{ nullptr };
 	};
+
+	bool positionIsValid(sf::Vector2f &pos)
+	{
+		SnakeNode *tmp = _head;
+		while (tmp)
+		{
+			if (tmp->_segment.getPosition() == pos)
+			{
+				return false;
+			}
+			tmp = tmp->_next;
+		}
+		return true;
+	}
 
 	int _length{ 0 };
 	SnakeNode *_head{ nullptr },
@@ -95,25 +131,45 @@ private:
 int main()
 {
 	sf::RenderWindow window(sf::VideoMode(400, 400), "Reverse Snake");
-	sf::RectangleShape shape(sf::Vector2f(10.f, 10.f));
-	shape.setFillColor(sf::Color::Green);
+	sf::RectangleShape player(sf::Vector2f(10.f, 10.f));
+	player.setFillColor(sf::Color::Green);
 	Snake snake;
 	sf::Clock moveClock,
 		growthClock;
 	sf::Time moveTime,
 		growthTime;
+	sf::Event event;
+	
+	sf::Font font;
+	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+	sf::Text text("Press any key to continue...", font, 16);
+	text.setOrigin(text.getLocalBounds().width / 2.f, text.getLocalBounds().height / 2.f);
+	text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+
+
+	bool collided = false;
+
+	while (window.isOpen() && window.waitEvent(event))
+	{
+		window.clear();
+		window.draw(text);
+		window.display();
+		if (event.type == sf::Event::KeyPressed)
+		{
+			break;
+		}
+	}
+
 	while (window.isOpen())
 	{
-		window.setFramerateLimit(8);
-		sf::Event event;
+
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
 			if (event.type == sf::Event::KeyPressed)
 			{
-				movePlayer(shape);
-
+				movePlayer(player);
 			}
 
 		}
@@ -131,10 +187,42 @@ int main()
 			moveClock.restart();
 		}
 
+		if (snake.checkCollision(player))
+		{
+			collided = true;
+			break;
+		}
+
 		window.clear();
 		snake.draw(window);
-		window.draw(shape);
+		window.draw(player);
 		window.display();
+	}
+
+	if (collided)
+	{
+		sf::Text gameOver("GAME OVER", font, 32);
+		sf::Text pressEnter("Press enter to exit", font, 16);
+		
+		gameOver.setFillColor(sf::Color::Red);
+		gameOver.setOrigin(gameOver.getLocalBounds().width / 2.f, gameOver.getLocalBounds().height / 2.f);
+		gameOver.setPosition(window.getSize().x / 2.f, (window.getSize().y / 2.f) - (pressEnter.getLocalBounds().height * 2));
+
+		pressEnter.setOrigin(pressEnter.getLocalBounds().width / 2.f, pressEnter.getLocalBounds().height / 2.f);
+		pressEnter.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+
+		window.clear();
+		window.draw(gameOver);
+		window.draw(pressEnter);
+		window.display();
+	}
+
+	while (window.isOpen() && window.waitEvent(event))
+	{
+		if (event.type == sf::Event::KeyPressed)
+		{
+			break;
+		}
 	}
 
 	return 0;
