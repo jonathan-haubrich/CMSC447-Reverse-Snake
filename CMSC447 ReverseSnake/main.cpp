@@ -1,3 +1,5 @@
+#include <iostream>
+#include <fstream>  
 #include <array>
 #include <SFML/Graphics.hpp>
 #include <SFML/Window/Event.hpp>
@@ -6,9 +8,12 @@
 
 #define	MOVE_DISTANCE	16
 
+std::ofstream outfile("scores.txt");
+
 void startScreen(sf::RenderWindow &window);
+void leaderboard(sf::RenderWindow &window);
 void gameLoop(sf::RenderWindow &window);
-void endScreen(sf::Text scoreText, sf::RenderWindow &window);
+void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window);
 void movePlayer(sf::RectangleShape &shape, sf::Vector2f playerDirection);
 
 class Snake {
@@ -295,7 +300,6 @@ int main()
 
 	// start screen
 	startScreen(window);
-	gameLoop(window);
 	return 0;
 }
 
@@ -312,21 +316,156 @@ void startScreen(sf::RenderWindow &window)
 	sf::Font font;
 	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
 	sf::Text title("Reverse Snake", font, 64);
-	title.setFillColor(sf::Color::Green);
+	title.setFillColor(sf::Color::Red);
 	title.setOrigin(title.getLocalBounds().width / 2.f, title.getLocalBounds().height / 2.f);
 	title.setPosition(window.getSize().x / 2, window.getSize().y / 2 - 150.f);
+	sf::Text startButton("Start", font, 20);
+	startButton.setOrigin(startButton.getLocalBounds().width / 2.f, startButton.getLocalBounds().height / 2.f);
+	startButton.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f - 25);
+	startButton.setFillColor(sf::Color::Green);
+	sf::Text scoreButton("Leaderboard", font, 20);
+	scoreButton.setOrigin(scoreButton.getLocalBounds().width / 2.f, scoreButton.getLocalBounds().height / 2.f);
+	scoreButton.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+
+	bool startButtonSelected = true;
+	bool startButtonPressed = false;
+	bool scoreButtonSelected = false;
+	bool scoreButtonPressed = false;
+
+	window.clear();
+	window.draw(title);
+	window.draw(startButton);
+	window.draw(scoreButton);
+	window.display();
+
+	while (window.waitEvent(event))
+	{
+		if (event.type == sf::Event::Closed)
+		{
+			window.close();
+		}
+		else if (event.type == sf::Event::KeyPressed)
+		{
+			switch (event.key.code)
+			{
+			case sf::Keyboard::Up:
+			{
+				if (!startButtonSelected)
+				{
+					startButtonSelected = true;
+					scoreButtonSelected = false;
+					startButton.setFillColor(sf::Color::Green);
+					scoreButton.setFillColor(sf::Color::White);
+					window.clear();
+					window.draw(title);
+					window.draw(startButton);
+					window.draw(scoreButton);
+					window.display();
+				}
+				break;
+			}
+			case sf::Keyboard::W:
+			{
+				if (!startButtonSelected)
+				{
+					startButtonSelected = true;
+					scoreButtonSelected = false;
+					startButton.setFillColor(sf::Color::Green);
+					scoreButton.setFillColor(sf::Color::White);
+					window.clear();
+					window.draw(title);
+					window.draw(startButton);
+					window.draw(scoreButton);
+					window.display();
+				}
+				break;
+			}
+			case sf::Keyboard::Down:
+			{
+				if (!scoreButtonSelected)
+				{
+					startButtonSelected = false;
+					scoreButtonSelected = true;
+					startButton.setFillColor(sf::Color::White);
+					scoreButton.setFillColor(sf::Color::Green);
+					window.clear();
+					window.draw(title);
+					window.draw(startButton);
+					window.draw(scoreButton);
+					window.display();
+				}
+				break;
+			}
+			case sf::Keyboard::S:
+			{
+				if (!scoreButtonSelected)
+				{
+					startButtonSelected = false;
+					scoreButtonSelected = true;
+					startButton.setFillColor(sf::Color::White);
+					scoreButton.setFillColor(sf::Color::Green);
+					window.clear();
+					window.draw(title);
+					window.draw(startButton);
+					window.draw(scoreButton);
+					window.display();
+				}
+				break;
+			}
+			case sf::Keyboard::Enter:
+			{
+				startButtonPressed = false;
+				scoreButtonPressed = false;
+
+				if (startButtonSelected)
+				{
+					startButtonPressed = true;
+					gameLoop(window);
+					break;
+				}
+				else
+				{
+					scoreButtonPressed = true;
+					leaderboard(window);
+					break;
+				}
+
+				break;
+			}
+			default:
+			{
+				break;
+			}
+			}
+		}
+	}
+}
+
+void leaderboard(sf::RenderWindow &window)
+{
+	sf::Event event;
+	sf::Font font;
+	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+	sf::Text title("Leaderboard", font, 64);
+	title.setFillColor(sf::Color::Red);
+	title.setOrigin(title.getLocalBounds().width / 2.f, title.getLocalBounds().height / 2.f);
+	title.setPosition(window.getSize().x / 2, window.getSize().y / 2 - 260.f);
+	sf::Text scores("Scores:", font, 24);
+	scores.setOrigin(scores.getLocalBounds().width / 2.f, scores.getLocalBounds().height / 2.f);
+	scores.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f - 200.f);
 	sf::Text text("Press any key to continue...", font, 16);
 	text.setOrigin(text.getLocalBounds().width / 2.f, text.getLocalBounds().height / 2.f);
-	text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
-
+	text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f + 240.f);
 	while (window.isOpen() && window.waitEvent(event))
 	{
 		window.clear();
 		window.draw(title);
+		window.draw(scores);
 		window.draw(text);
 		window.display();
 		if (event.type == sf::Event::KeyPressed)
 		{
+			startScreen(window);
 			break;
 		}
 	}
@@ -805,11 +944,11 @@ void gameLoop(sf::RenderWindow &window)
 
 	if (collided)
 	{
-		endScreen(scoreText, window);
+		endScreen(scoreText, score, window);
 	}
 }
 
-void endScreen(sf::Text scoreText, sf::RenderWindow &window)
+void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
 {
 	sf::Event event;
 	sf::Font font;
