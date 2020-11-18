@@ -2,16 +2,24 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Window/Event.hpp>
 #include <Windows.h>
+#include <time.h>
 
 #define	MOVE_DISTANCE	16
 
-void movePlayer(sf::RectangleShape &shape);
+void startScreen(sf::RenderWindow &window);
+void gameLoop(sf::RenderWindow &window);
+void endScreen(sf::Text scoreText, sf::RenderWindow &window);
+void movePlayer(sf::RectangleShape &shape, sf::Vector2f playerDirection);
 
 class Snake {
 public:
 	Snake() {
 		_head = _tail = new SnakeNode;
 		_head->_segment.setPosition({ 320.f, 320.f });
+	}
+	Snake(sf::Vector2f startingPosition) {
+		_head = _tail = new SnakeNode;
+		_head->_segment.setPosition(startingPosition);
 	}
 	~Snake()
 	{
@@ -24,12 +32,8 @@ public:
 		}
 	}
 
-	void draw(sf::RenderWindow &window)
+	void draw(sf::RenderWindow &window, sf::Texture snakeHead, sf::Texture snakeBody)
 	{
-		sf::Texture snakeHead;
-		snakeHead.loadFromFile("textures\\snakeHead.png");
-		sf::Texture snakeBody;
-		snakeBody.loadFromFile("textures\\snakeBody.png");
 		SnakeNode *tmp = _head;
 		tmp->_segment.setTexture(snakeHead);
 		while (tmp)
@@ -104,7 +108,7 @@ public:
 		{
 			validMoves.push_back(newPosition);
 		}
-
+		/*
 		if (validMoves.size() == 0)
 		{
 			// Swap head and tail
@@ -166,8 +170,10 @@ public:
 				validMoves.push_back(newPosition);
 			}
 		}
+		*/
 
-		_head->_segment.setPosition(validMoves.at(rand() % validMoves.size()));
+		//_head->_segment.setPosition(validMoves.at(rand() % validMoves.size()));
+		_head->_segment.setPosition(newPosition);
 
 		// Move the rest of the body
 		tmp = _head->_next;
@@ -188,6 +194,23 @@ public:
 		}
 	}
 
+	sf::Vector2f getHead()
+	{
+		return _head->_segment.getPosition();
+	}
+
+	int getLength()
+	{
+		int length = 1;
+		SnakeNode *tmp = _head;
+		while (tmp)
+		{
+			length += 1;
+			tmp = tmp->_next;
+		}
+		return length;
+	}
+
 	bool checkCollision(sf::RectangleShape const &shape)
 	{
 		SnakeNode *tmp = _head;
@@ -196,6 +219,39 @@ public:
 			if (tmp->_segment.getGlobalBounds().intersects(shape.getGlobalBounds()))
 			{
 				return true;
+			}
+			tmp = tmp->_next;
+		}
+		return false;
+	}
+
+	bool isSelfIntersecting()
+	{
+		SnakeNode *tmp = _head->_next;
+		while (tmp)
+		{
+			if (_head->_segment.getGlobalBounds().intersects(tmp->_segment.getGlobalBounds()))
+			{
+				return true;
+			}
+			tmp = tmp->_next;
+		}
+		return false;
+	}
+
+	bool checkSnakeCollision(Snake* otherSnake)
+	{
+		SnakeNode *tmp = _head;
+		SnakeNode *otherTmp = otherSnake->_head;
+		while (tmp)
+		{
+			while (otherTmp)
+			{
+				if (tmp->_segment.getGlobalBounds().intersects(otherTmp->_segment.getGlobalBounds()))
+				{
+					return true;
+				}
+				otherTmp = otherTmp->_next;
 			}
 			tmp = tmp->_next;
 		}
@@ -231,180 +287,564 @@ private:
 	bool _grow{ false };
 };
 
-HWND hWnd = GetConsoleWindow();
-ShowWindow(hWnd, SW_HIDE);
-
-sf::RenderWindow window(sf::VideoMode(640, 640), "Reverse Snake");
-sf::RectangleShape player(sf::Vector2f(16.f, 16.f));
-player.setOrigin(-16.f, -16.f);
-player.setFillColor(sf::Color::Green);
-sf::Vector2f playerDirection({ MOVE_DISTANCE, 0.f });
-Snake snake;
-sf::Clock moveClock,
-growthClock;
-sf::Time moveTime,
-growthTime;
-sf::Event event;
-
-//wall textures
-std::array<sf::Sprite, 4> walls;
-sf::Texture wallTxt;
-wallTxt.loadFromFile("textures\\wall.png");
-wallTxt.setRepeated(true);
-for (auto &wall : walls)
+int main()
 {
-	wall.setTexture(wallTxt);
+	HWND hWnd = GetConsoleWindow();
+	ShowWindow(hWnd, SW_HIDE);
+	sf::RenderWindow window(sf::VideoMode(640, 640), "Reverse Snake");
+
+	// start screen
+	startScreen(window);
+	gameLoop(window);
+	return 0;
 }
 
-walls[0].setTextureRect({ 0, 0, (int)window.getSize().x, 16 });
-walls[1].setTextureRect({ 0, 0, (int)window.getSize().x, 16 });
-walls[1].setPosition(0, window.getSize().y - 16);
 
-walls[2].setTextureRect({ 0, 0, 16, (int)window.getSize().y });
-walls[3].setTextureRect({ 0, 0, 16, (int)window.getSize().y });
-walls[3].setPosition(window.getSize().x - 16, 0);
-
-// start screen
-sf::Font font;
-font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
-sf::Text text("Press any key to continue...", font, 16);
-text.setOrigin(text.getLocalBounds().width / 2.f, text.getLocalBounds().height / 2.f);
-text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
-
-
-bool collided = false;
-
-while (window.isOpen() && window.waitEvent(event))
+void movePlayer(sf::RectangleShape &shape, sf::Vector2f playerDirection)
 {
-	window.clear();
-	window.draw(text);
-	window.display();
-	if (event.type == sf::Event::KeyPressed)
-	{
-		break;
-	}
+
+	shape.move(playerDirection);
 }
 
-// game loop
-while (window.isOpen())
+void startScreen(sf::RenderWindow &window)
 {
-	while (window.pollEvent(event))
+	sf::Event event;
+	sf::Font font;
+	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+	sf::Text title("Reverse Snake", font, 64);
+	title.setFillColor(sf::Color::Green);
+	title.setOrigin(title.getLocalBounds().width / 2.f, title.getLocalBounds().height / 2.f);
+	title.setPosition(window.getSize().x / 2, window.getSize().y / 2 - 150.f);
+	sf::Text text("Press any key to continue...", font, 16);
+	text.setOrigin(text.getLocalBounds().width / 2.f, text.getLocalBounds().height / 2.f);
+	text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+
+	while (window.isOpen() && window.waitEvent(event))
 	{
-		if (event.type == sf::Event::Closed)
-			window.close();
+		window.clear();
+		window.draw(title);
+		window.draw(text);
+		window.display();
 		if (event.type == sf::Event::KeyPressed)
 		{
-			movePlayer(player);
+			break;
 		}
+	}
+}
 
-	}
+void gameLoop(sf::RenderWindow &window)
+{
+	sf::Font font;
+	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+	sf::RectangleShape player(sf::Vector2f(16.f, 16.f));
+	player.setOrigin(-16.f, -16.f);
+	player.setFillColor(sf::Color::Green);
+	sf::Vector2f playerDirection({ MOVE_DISTANCE, 0.f });
+	Snake * snake = new Snake({ 560, 560 });
+	Snake * snake2 = nullptr;
+	Snake * snake3 = nullptr;
+	int score = 0;
+	srand(time(0));
+	sf::Text scoreText;
+	sf::Clock moveClock,
+		playerClock,
+		snake1Clock,
+		snake2Clock,
+		snake3Clock,
+		snakeDClock,
+		pointClock,
+		point2Clock,
+		boostClock,
+		cookieClock,
+		gameClock,
+		finalClock,
+		growthClock;
+	sf::Time moveTime,
+		playerTime,
+		snake1Time,
+		snake2Time,
+		snake3Time,
+		cookieTime,
+		growthTime;
+	sf::Event event;
 
-	growthTime = growthClock.getElapsedTime();
-	if (growthTime.asSeconds() >= 3.f)
-	{
-		snake.grow();
-		growthClock.restart();
-	}
-	moveTime = moveClock.getElapsedTime();
-	/*
-	if (moveTime.asSeconds() >= 0.3f)
-	{
-		while (window.pollEvent(event))
-		{
-			if (event.type == sf::Event::Closed)
-				window.close();
-			else if (event.type == sf::Event::KeyPressed)
-			{
-				// Get player direction
-				sf::Vector2f newDirection = playerDirection;
-				switch (event.key.code)
-				{
-				case sf::Keyboard::Up:
-					newDirection = { 0.f, -MOVE_DISTANCE};
-					break;
-				case sf::Keyboard::Down:
-					newDirection = { 0.f, MOVE_DISTANCE};
-					break;
-				case sf::Keyboard::Left:
-					newDirection = { -MOVE_DISTANCE, 0.f };
-					break;
-				case sf::Keyboard::Right:
-					newDirection = { MOVE_DISTANCE, 0.f };
-					break;
-				case sf::Keyboard::W:
-					newDirection = { 0.f, -MOVE_DISTANCE};
-					break;
-				case sf::Keyboard::S:
-					newDirection = { 0.f, MOVE_DISTANCE};
-					break;
-				case sf::Keyboard::A:
-					newDirection = { -MOVE_DISTANCE, 0.f };
-					break;
-				case sf::Keyboard::D:
-					newDirection = { MOVE_DISTANCE, 0.f };
-					break;
-				default:
-					break;
-				}
-				playerDirection = newDirection;
-			}
-		}
-		movePlayer(player, playerDirection);
-	}
-	*/
-	if (moveTime.asSeconds() >= 0.3f)
-	{
-		sf::Vector2f targetPosition = player.getPosition();
-		snake.move(targetPosition);
-		moveClock.restart();
-	}
-	// check for collision with snake
-	if (snake.checkCollision(player))
-	{
-		collided = true;
-		break;
-	}
-	// check for collision with walls
+	//snake textures
+	sf::Texture snakeHead;
+	snakeHead.loadFromFile("textures\\snakeHead.png");
+	sf::Texture snakeBody;
+	snakeBody.loadFromFile("textures\\snakeBody.png");
+	sf::Texture snakeHead2;
+	snakeHead2.loadFromFile("textures\\snakeHead2.png");
+	sf::Texture snakeBody2;
+	snakeBody2.loadFromFile("textures\\snakeBody2.png");
+	sf::Texture snakeHead3;
+	snakeHead3.loadFromFile("textures\\snakeHead3.png");
+	sf::Texture snakeBody3;
+	snakeBody3.loadFromFile("textures\\snakeBody3.png");
+
+	//food textures
+	sf::Texture foodTxt;
+	foodTxt.loadFromFile("textures\\food.png");
+	sf::Sprite food(foodTxt);
+	food.setPosition(window.getSize().x / 2, window.getSize().y / 2 - 200.f);
+	sf::Texture food2Txt;
+	food2Txt.loadFromFile("textures\\food2.png");
+	sf::Sprite food2(food2Txt);
+	food2.setPosition(window.getSize().x / 2 - 200.f, window.getSize().y / 2);
+	sf::Texture cookieTxt;
+	cookieTxt.loadFromFile("textures\\cookie.png");
+	sf::Sprite cookie(cookieTxt);
+	cookie.setPosition(window.getSize().x / 2, window.getSize().y / 2 + 200.f);
+
+	//wall textures
+	std::array<sf::Sprite, 4> walls;
+	sf::Texture wallTxt;
+	wallTxt.loadFromFile("textures\\wall.png");
+	wallTxt.setRepeated(true);
 	for (auto &wall : walls)
 	{
-		if (wall.getGlobalBounds().intersects(player.getGlobalBounds()))
+		wall.setTexture(wallTxt);
+	}
+
+	walls[0].setTextureRect({ 0, 0, (int)window.getSize().x, 16 });
+	walls[1].setTextureRect({ 0, 0, (int)window.getSize().x, 16 });
+	walls[1].setPosition(0, window.getSize().y - 16);
+
+	walls[2].setTextureRect({ 0, 0, 16, (int)window.getSize().y });
+	walls[3].setTextureRect({ 0, 0, 16, (int)window.getSize().y });
+	walls[3].setPosition(window.getSize().x - 16, 0);
+
+	// start screen
+	startScreen(window);
+
+	scoreText.setFont(font);
+	scoreText.setString("Score: " + std::to_string(score));
+	scoreText.setCharacterSize(16);
+
+	bool collided = false;
+	float playerSpeed = 0.2f;
+	float respawnSpeed = 5.f;
+	float growSpeed = 2.f;
+	float snakeSpeed = 0.3f;
+	sf::Text points("+10", font, 16);
+	sf::Text points2("+15", font, 16);
+	sf::Text snakeDeath("+10", font, 16);
+	sf::Text boost("2x Speed", font, 16);
+	bool snake1exists = true, snake2exists = false, snake3exists = false;
+
+	// game loop
+	while (window.isOpen())
+	{
+		growthTime = growthClock.getElapsedTime();
+		if (growthTime.asSeconds() >= growSpeed)
+		{
+			if (snake1exists)
+			{
+				snake->grow();
+			}
+			if (snake2exists)
+			{
+				snake2->grow();
+			}
+			if (snake3exists)
+			{
+				snake3->grow();
+			}
+			score += 1;
+			growthClock.restart();
+		}
+
+		snake1Time = snake1Clock.getElapsedTime();
+		snake2Time = snake2Clock.getElapsedTime();
+		snake3Time = snake3Clock.getElapsedTime();
+		if (snake1Time.asSeconds() >= respawnSpeed && snake1exists == false)
+		{
+			snake = new Snake({ 560, 560 });
+			snake1exists = true;
+		}
+		if (snake2Time.asSeconds() >= respawnSpeed && snake2exists == false)
+		{
+			snake2 = new Snake({ 80, 560 });
+			snake2exists = true;
+		}
+		if (snake3Time.asSeconds() >= respawnSpeed * 2 && snake3exists == false)
+		{
+			snake3 = new Snake({ 560, 80 });
+			snake3exists = true;
+		}
+		playerTime = playerClock.getElapsedTime();
+		if (playerTime.asSeconds() >= playerSpeed)
+		{
+			while (window.pollEvent(event))
+			{
+				if (event.type == sf::Event::Closed)
+					window.close();
+				else if (event.type == sf::Event::KeyPressed)
+				{
+					// Get player direction
+					sf::Vector2f newDirection = playerDirection;
+					switch (event.key.code)
+					{
+					case sf::Keyboard::Up:
+						newDirection = { 0.f, -MOVE_DISTANCE };
+						break;
+					case sf::Keyboard::Down:
+						newDirection = { 0.f, MOVE_DISTANCE };
+						break;
+					case sf::Keyboard::Left:
+						newDirection = { -MOVE_DISTANCE, 0.f };
+						break;
+					case sf::Keyboard::Right:
+						newDirection = { MOVE_DISTANCE, 0.f };
+						break;
+					case sf::Keyboard::W:
+						newDirection = { 0.f, -MOVE_DISTANCE };
+						break;
+					case sf::Keyboard::S:
+						newDirection = { 0.f, MOVE_DISTANCE };
+						break;
+					case sf::Keyboard::A:
+						newDirection = { -MOVE_DISTANCE, 0.f };
+						break;
+					case sf::Keyboard::D:
+						newDirection = { MOVE_DISTANCE, 0.f };
+						break;
+					default:
+						break;
+					}
+					playerDirection = newDirection;
+				}
+			}
+			movePlayer(player, playerDirection);
+			playerClock.restart();
+		}
+		moveTime = moveClock.getElapsedTime();
+		int snakeLength = 0;
+		if (moveTime.asSeconds() >= snakeSpeed)
+		{
+			sf::Vector2f targetPosition = player.getPosition();
+			if (snake1exists)
+			{
+				snake->move(targetPosition);
+				// check if snake1 collided with other snakes
+				if (snake2exists)
+				{
+					if (snake->checkSnakeCollision(snake2))
+					{
+						snakeLength = snake->getLength();
+						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+						snakeDeath.setPosition(snake->getHead().x, snake->getHead().y);
+						delete snake;
+						score += 10 * snakeLength;
+						snake1exists = false;
+						snake1Clock.restart();
+						snakeDClock.restart();
+						scoreText.setString("Score : " + std::to_string(score));
+					}
+				}
+				if (snake3exists && snake1exists)
+				{
+					if (snake->checkSnakeCollision(snake3))
+					{
+						snakeLength = snake->getLength();
+						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+						snakeDeath.setPosition(snake->getHead().x, snake->getHead().y);
+						delete snake;
+						score += 10 * snakeLength;
+						snake1exists = false;
+						snake1Clock.restart();
+						snakeDClock.restart();
+						scoreText.setString("Score : " + std::to_string(score));
+					}
+				}
+
+			}
+			if (snake2exists)
+			{
+				snake2->move(targetPosition);
+				// check if snake 2 collided with other snakes
+				if (snake1exists)
+				{
+					if (snake2->checkSnakeCollision(snake))
+					{
+						snakeLength = snake2->getLength();
+						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+						snakeDeath.setPosition(snake2->getHead().x, snake2->getHead().y);
+						delete snake2;
+						score += 10 * snakeLength;
+						snake2exists = false;
+						snake2Clock.restart();
+						snakeDClock.restart();
+						scoreText.setString("Score : " + std::to_string(score));
+					}
+				}
+				if (snake3exists && snake2exists)
+				{
+					if (snake2->checkSnakeCollision(snake3))
+					{
+						snakeLength = snake2->getLength();
+						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+						snakeDeath.setPosition(snake2->getHead().x, snake2->getHead().y);
+						delete snake2;
+						score += 10 * snakeLength;
+						snake2exists = false;
+						snake2Clock.restart();
+						snakeDClock.restart();
+						scoreText.setString("Score : " + std::to_string(score));
+					}
+				}
+			}
+			if (snake3exists)
+			{
+				snake3->move(targetPosition);
+				// check if snake 3 collided with other snakes
+				if (snake1exists)
+				{
+					if (snake3->checkSnakeCollision(snake))
+					{
+						snakeLength = snake3->getLength();
+						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+						snakeDeath.setPosition(snake3->getHead().x, snake3->getHead().y);
+						delete snake3;
+						score += 10 * snakeLength;
+						snake3exists = false;
+						snake3Clock.restart();
+						snakeDClock.restart();
+						scoreText.setString("Score : " + std::to_string(score));
+					}
+				}
+				if (snake2exists && snake3exists)
+				{
+					if (snake3->checkSnakeCollision(snake2))
+					{
+						snakeLength = snake3->getLength();
+						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+						snakeDeath.setPosition(snake3->getHead().x, snake3->getHead().y);
+						delete snake3;
+						score += 10 * snakeLength;
+						snake3exists = false;
+						snake3Clock.restart();
+						snakeDClock.restart();
+						scoreText.setString("Score : " + std::to_string(score));
+					}
+				}
+			}
+			moveClock.restart();
+		}
+		// check for self intersection
+		if (snake1exists)
+		{
+			if (snake->isSelfIntersecting())
+			{
+				snakeLength = snake->getLength();
+				snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+				snakeDeath.setPosition(snake->getHead().x, snake->getHead().y);
+				delete snake;
+				score += 10 * snakeLength;
+				snake1exists = false;
+				snake1Clock.restart();
+				snakeDClock.restart();
+				scoreText.setString("Score : " + std::to_string(score));
+			}
+		}
+		if (snake2exists)
+		{
+			if (snake2->isSelfIntersecting())
+			{
+				snakeLength = snake2->getLength();
+				snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+				snakeDeath.setPosition(snake2->getHead().x, snake2->getHead().y);
+				delete snake2;
+				score += 10 * snakeLength;
+				snake2exists = false;
+				snake2Clock.restart();
+				snakeDClock.restart();
+				scoreText.setString("Score : " + std::to_string(score));
+			}
+		}
+		if (snake3exists)
+		{
+			if (snake3->isSelfIntersecting())
+			{
+				snakeLength = snake3->getLength();
+				snakeDeath.setString("+" + std::to_string(10 * snakeLength));
+				snakeDeath.setPosition(snake3->getHead().x, snake3->getHead().y);
+				delete snake3;
+				score += 10 * snakeLength;
+				snake3exists = false;
+				snake3Clock.restart();
+				snakeDClock.restart();
+				scoreText.setString("Score : " + std::to_string(score));
+			}
+		}
+		// check for player collision with snake
+		if (snake1exists)
+		{
+			if (snake->checkCollision(player))
+			{
+				collided = true;
+				break;
+			}
+		}
+		if (snake2exists)
+		{
+			if (snake2->checkCollision(player))
+			{
+				collided = true;
+				break;
+			}
+		}
+		if (snake3exists)
+		{
+			if (snake3->checkCollision(player))
+			{
+				collided = true;
+				break;
+			}
+		}
+		// check for collision with walls
+		if (walls[0].getGlobalBounds().intersects(player.getGlobalBounds()) || walls[1].getGlobalBounds().intersects(player.getGlobalBounds())
+			|| walls[2].getGlobalBounds().intersects(player.getGlobalBounds()) || walls[3].getGlobalBounds().intersects(player.getGlobalBounds()))
 		{
 			collided = true;
 			break;
 		}
+		// check for collision with food
+		if (food.getGlobalBounds().intersects(player.getGlobalBounds()))
+		{
+			int x = rand() % 560 + 48;
+			int y = rand() % 560 + 48;
+
+			points.setPosition(food.getPosition().x, food.getPosition().y - 16);
+			pointClock.restart();
+			food.setPosition(x, y);
+			score += 10;
+			scoreText.setString("Score : " + std::to_string(score));
+		}
+		if (food2.getGlobalBounds().intersects(player.getGlobalBounds()))
+		{
+			int x = rand() % 560 + 48;
+			int y = rand() % 560 + 48;
+
+			points2.setPosition(food2.getPosition().x, food2.getPosition().y - 16);
+			point2Clock.restart();
+			food2.setPosition(x, y);
+			score += 10;
+			scoreText.setString("Score : " + std::to_string(score));
+		}
+		// check for collision with cookie
+		if (cookie.getGlobalBounds().intersects(player.getGlobalBounds()))
+		{
+			cookieClock.restart();
+			int x = rand() % 560 + 48;
+			int y = rand() % 560 + 48;
+
+			boost.setPosition(cookie.getPosition().x, cookie.getPosition().y - 16);
+			boostClock.restart();
+			cookie.setPosition(x, y);
+			playerSpeed = 0.1f;
+		}
+		cookieTime = cookieClock.getElapsedTime();
+		// reset player speed after 5 seconds
+		if (cookieTime.asSeconds() >= 5.f)
+		{
+			playerSpeed = 0.2f;
+		}
+		// remove snake respawn time after 45 seconds
+		if (gameClock.getElapsedTime().asSeconds() >= 45)
+		{
+			respawnSpeed = 0;
+			growSpeed = 1;
+		}
+		// after 1min 30 seconds increase snake movement speed and snake growth
+		if (finalClock.getElapsedTime().asSeconds() >= 90)
+		{
+			growSpeed = .5f;
+			snakeSpeed = 0.2f;
+		}
+
+
+		window.clear();
+		for (auto &wall : walls)
+		{
+			window.draw(wall);
+		}
+		scoreText.setString("Score: " + std::to_string(score));
+		window.draw(scoreText);
+		window.draw(food);
+		window.draw(food2);
+		window.draw(cookie);
+		if (snake1exists)
+		{
+			snake->draw(window, snakeHead, snakeBody);
+		}
+		if (snake2exists)
+		{
+			snake2->draw(window, snakeHead2, snakeBody2);
+		}
+		if (snake3exists)
+		{
+			snake3->draw(window, snakeHead3, snakeBody3);
+		}
+		window.draw(player);
+		if (pointClock.getElapsedTime().asSeconds() <= 2)
+		{
+			window.draw(points);
+		}
+		if (point2Clock.getElapsedTime().asSeconds() <= 2)
+		{
+			window.draw(points2);
+		}
+		if (boostClock.getElapsedTime().asSeconds() <= 2)
+		{
+			window.draw(boost);
+		}
+		if (snakeDClock.getElapsedTime().asSeconds() <= 2)
+		{
+			window.draw(snakeDeath);
+		}
+		window.display();
 	}
 
-	window.clear();
-	for (auto &wall : walls)
+	if (collided)
 	{
-		window.draw(wall);
+		endScreen(scoreText, window);
 	}
-	snake.draw(window);
-	window.draw(player);
-	window.display();
 }
 
-if (collided)
+void endScreen(sf::Text scoreText, sf::RenderWindow &window)
 {
+	sf::Event event;
+	sf::Font font;
+	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+
 	// end screen
 	bool RetryButtonSelected = true;
 	bool RetryButtonPressed = false;
 	bool ExitButtonSelected = false;
 	bool ExitButtonPressed = false;
-	sf::Text gameOver("GAME OVER", font, 32);
-	sf::Text exitButton("Exit", font, 20);
-	exitButton.setOrigin(exitButton.getLocalBounds().width / 2, exitButton.getLocalBounds().height / 2);
-	exitButton.setPosition(window.getSize().x / 2, window.getSize().y / 2.f);
-	sf::Text retryButton("Retry", font, 20);
-	retryButton.setOrigin(retryButton.getLocalBounds().width / 2, retryButton.getLocalBounds().height / 2);
-	retryButton.setPosition(window.getSize().x / 2, window.getSize().y / 2 - 25.f);
 
+	sf::Text gameOver("GAME OVER", font, 32);
 	gameOver.setFillColor(sf::Color::Red);
 	gameOver.setOrigin(gameOver.getLocalBounds().width / 2.f, gameOver.getLocalBounds().height / 2.f);
 	gameOver.setPosition(window.getSize().x / 2, window.getSize().y / 2 - 150.f);
 
+	sf::Text exitButton("Exit", font, 20);
+	exitButton.setOrigin(exitButton.getLocalBounds().width / 2, exitButton.getLocalBounds().height / 2);
+	exitButton.setPosition(window.getSize().x / 2, window.getSize().y / 2.f);
+
+	sf::Text retryButton("Retry", font, 20);
+	retryButton.setOrigin(retryButton.getLocalBounds().width / 2, retryButton.getLocalBounds().height / 2);
+	retryButton.setPosition(window.getSize().x / 2, window.getSize().y / 2 - 25.f);
+	retryButton.setFillColor(sf::Color::Green);
+
+	scoreText.setOrigin(scoreText.getLocalBounds().width / 2.f, scoreText.getLocalBounds().height / 2.f);
+	scoreText.setPosition(window.getSize().x / 2 - 15.f, window.getSize().y / 2 - 100.f);
+	scoreText.setCharacterSize(26);
+
 	window.clear();
 	window.draw(gameOver);
+	window.draw(scoreText);
 	window.draw(exitButton);
 	window.draw(retryButton);
 	window.display();
@@ -429,6 +869,7 @@ if (collided)
 					exitButton.setFillColor(sf::Color::White);
 					window.clear();
 					window.draw(gameOver);
+					window.draw(scoreText);
 					window.draw(exitButton);
 					window.draw(retryButton);
 					window.display();
@@ -445,6 +886,7 @@ if (collided)
 					exitButton.setFillColor(sf::Color::White);
 					window.clear();
 					window.draw(gameOver);
+					window.draw(scoreText);
 					window.draw(exitButton);
 					window.draw(retryButton);
 					window.display();
@@ -461,6 +903,7 @@ if (collided)
 					retryButton.setFillColor(sf::Color::White);
 					window.clear();
 					window.draw(gameOver);
+					window.draw(scoreText);
 					window.draw(exitButton);
 					window.draw(retryButton);
 					window.display();
@@ -477,6 +920,7 @@ if (collided)
 					retryButton.setFillColor(sf::Color::White);
 					window.clear();
 					window.draw(gameOver);
+					window.draw(scoreText);
 					window.draw(exitButton);
 					window.draw(retryButton);
 					window.display();
@@ -491,8 +935,9 @@ if (collided)
 				if (RetryButtonSelected)
 				{
 					RetryButtonPressed = true;
-					window.close();
-					main();
+					//window.close();
+					//main();
+					gameLoop(window);
 					break;
 				}
 				else
@@ -510,47 +955,5 @@ if (collided)
 			}
 			}
 		}
-	}
-}
-
-
-
-//while (window.isOpen() && window.waitEvent(event))
-//{
-	//if (event.type == sf::Event::KeyPressed)
-	//{
-		//if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter))
-		//{
-			//break;
-		//}
-	//}
-//}
-
-return 0;
-}
-
-/*
-void movePlayer(sf::RectangleShape &shape, sf::Vector2f playerDirection)
-{
-	shape.move(playerDirection);
-}
-*/
-void movePlayer(sf::RectangleShape &shape)
-{
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-	{
-		shape.move(-MOVE_DISTANCE, 0);
-	}
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-	{
-		shape.move(MOVE_DISTANCE, 0);
-	}
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-	{
-		shape.move(0, -MOVE_DISTANCE);
-	}
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-	{
-		shape.move(0, MOVE_DISTANCE);
 	}
 }
