@@ -414,9 +414,6 @@ void gameLoop(sf::RenderWindow &window)
 	walls[3].setTextureRect({ 0, 0, 16, (int)window.getSize().y });
 	walls[3].setPosition(window.getSize().x - 16, 0);
 
-	// start screen
-	startScreen(window);
-
 	scoreText.setFont(font);
 	scoreText.setString("Score: " + std::to_string(score));
 	scoreText.setCharacterSize(16);
