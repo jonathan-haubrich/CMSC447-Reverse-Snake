@@ -1064,7 +1064,16 @@ void saveScores(std::vector<Score*> &scores)
 		++iter)
 	{
 		Score *score = *iter;
-		jsonScores[utility::conversions::to_utf16string(score->initials())] = score->score();
+		try {
+			if (jsonScores.at(utility::conversions::to_utf16string(score->initials())).as_integer() < score->score())
+			{
+				jsonScores[utility::conversions::to_utf16string(score->initials())] = score->score();
+			}
+		}
+		catch (web::json::json_exception &e)
+		{
+			jsonScores[utility::conversions::to_utf16string(score->initials())] = score->score();
+		}
 	}
 
 	postGlobalScores(jsonScores);
