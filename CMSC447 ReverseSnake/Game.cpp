@@ -27,6 +27,10 @@ void startScreen(sf::RenderWindow &window)
 	bool scoreButtonSelected = false;
 	bool scoreButtonPressed = false;
 
+	std::vector<Score*> scores;
+
+	loadScores(scores);
+
 	window.clear();
 	window.draw(title);
 	window.draw(startButton);
@@ -121,7 +125,7 @@ void startScreen(sf::RenderWindow &window)
 				else
 				{
 					scoreButtonPressed = true;
-					leaderboard(window);
+					leaderboard(window, scores);
 					break;
 				}
 
@@ -136,7 +140,7 @@ void startScreen(sf::RenderWindow &window)
 	}
 }
 
-void leaderboard(sf::RenderWindow &window)
+void leaderboard(sf::RenderWindow &window, std::vector<Score*> &highScores)
 {
 	sf::Event event;
 	sf::Font font;
@@ -151,11 +155,41 @@ void leaderboard(sf::RenderWindow &window)
 	sf::Text text("Press any key to continue...", font, 16);
 	text.setOrigin(text.getLocalBounds().width / 2.f, text.getLocalBounds().height / 2.f);
 	text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f + 240.f);
+
+	std::vector<std::pair<sf::Text, sf::Text>> listings;
+	int highScoreOrigin = 50;
+
+	std::vector<Score*>::iterator end = (highScores.size() > 5) ? highScores.begin() + 5 : highScores.end();
+	for (auto iter = highScores.begin(); iter != end; ++iter)
+	{
+		Score *score = *iter;
+		sf::Text initials(score->initials(), font, 18);
+		sf::Text highScore(std::to_string(score->score()), font, 18);
+
+		initials.setOrigin(0, initials.getLocalBounds().height / 2.f);
+		highScore.setOrigin(highScore.getLocalBounds().width,
+			highScore.getLocalBounds().height / 2.f);
+
+		initials.setPosition(title.getGlobalBounds().left,
+			scores.getPosition().y + highScoreOrigin);
+		highScore.setPosition(title.getGlobalBounds().left + title.getLocalBounds().width,
+			scores.getPosition().y + highScoreOrigin);
+
+		listings.push_back({ initials, highScore });
+
+		highScoreOrigin += 30;
+	}
+
 	while (window.isOpen() && window.waitEvent(event))
 	{
 		window.clear();
 		window.draw(title);
 		window.draw(scores);
+		for (auto iter = listings.begin(); iter != listings.end(); ++iter)
+		{
+			window.draw(iter->first);
+			window.draw(iter->second);
+		}
 		window.draw(text);
 		window.display();
 		if (event.type == sf::Event::KeyPressed)
@@ -639,6 +673,7 @@ void gameLoop(sf::RenderWindow &window)
 
 	if (collided)
 	{
+
 		endScreen(scoreText, score, window);
 	}
 }
@@ -787,4 +822,133 @@ void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
 			}
 		}
 	}
+}
+
+void loadScores(std::vector<Score*> &scores)
+{
+	HRESULT hResult = 0;
+	PWSTR appDataPath = NULL;
+	LPCWSTR gameFolder = L"Ekans",
+		scoresFileName = L"scores.json";
+	WCHAR gameFolderAbsPath[MAX_PATH] = { 0 },
+		scoresFileAbsPath[MAX_PATH] = { 0 };
+	HANDLE hScoresFile = INVALID_HANDLE_VALUE;
+	DWORD dwFileSize = 0,
+		dwBytesRead = 0;
+	PSTR pbFileData = NULL;
+	web::json::value jsonScores;
+
+	// Get RoamingAppData location
+	hResult = SHGetKnownFolderPath(FOLDERID_RoamingAppData,
+		KF_FLAG_DEFAULT,
+		NULL,
+		&appDataPath);
+
+	if (FAILED(hResult))
+	{
+		goto end;
+	}
+
+	if (NULL == PathCombineW(gameFolderAbsPath, appDataPath, gameFolder)
+		|| NULL == PathCombineW(scoresFileAbsPath, gameFolderAbsPath, scoresFileName))
+	{
+		goto end;
+	}
+
+	if (ERROR == CreateDirectoryW(gameFolderAbsPath, NULL)
+		&& ERROR_ALREADY_EXISTS != GetLastError())
+	{
+		goto end;
+	}
+
+	hScoresFile = CreateFileW(scoresFileAbsPath,
+		GENERIC_ALL,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_ALWAYS,
+		0,
+		NULL);
+
+
+	// We're done with path now
+	CoTaskMemFree(appDataPath);
+	appDataPath = NULL;
+
+	if (INVALID_HANDLE_VALUE == hScoresFile)
+	{
+		goto end;
+	}
+
+	dwFileSize = GetFileSize(hScoresFile, NULL);
+	if (0 == dwFileSize)
+	{
+		goto end;
+	}
+
+	pbFileData = (PSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwFileSize);
+	if(NULL == pbFileData)
+	{
+		goto end;
+	}
+
+	if (FALSE == ReadFile(hScoresFile,
+		pbFileData,
+		dwFileSize,
+		&dwBytesRead,
+		NULL))
+	{
+		goto end;
+	}
+
+	jsonScores = web::json::value::parse(std::string(pbFileData));
+	if (0 == jsonScores.size())
+	{
+		goto end;
+	}
+
+	for (web::json::object::const_iterator iter = jsonScores.as_object().cbegin();
+		iter != jsonScores.as_object().cend();
+		++iter)
+	{
+		const utility::string_t initials = iter->first;
+		const int score = iter->second.as_integer();
+
+		scores.push_back(new Score(score, utility::conversions::to_utf8string(initials)));
+	}
+
+	// Sort in reverse so highest is first
+	std::sort(scores.rbegin(), scores.rend(), [](Score *lhs, Score *rhs) {
+		return lhs->score() < rhs->score();
+	});
+
+end:
+	if (pbFileData)
+	{
+		HeapFree(GetProcessHeap(), 0, pbFileData);
+		pbFileData = NULL;
+	}
+	if (INVALID_HANDLE_VALUE != hScoresFile)
+	{
+		CloseHandle(hScoresFile);
+		hScoresFile = INVALID_HANDLE_VALUE;
+	}
+	if (appDataPath) {
+		CoTaskMemFree(appDataPath);
+		appDataPath = NULL;
+	}
+}
+
+void saveScores(std::vector<Score*> &scores)
+{
+	web::json::value jsonScores;
+
+	for (std::vector<Score*>::iterator iter = scores.begin();
+		iter != scores.end();
+		++iter)
+	{
+		Score *score = *iter;
+		/*jsonScores[utility::conversions::to_utf16string(score->initials())] = score->score;*/
+	}
+
+	utility::string_t stringScores = jsonScores.serialize();
 }
