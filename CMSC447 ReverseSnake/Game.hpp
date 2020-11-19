@@ -1,4 +1,5 @@
 #pragma once
+#pragma comment(lib, "sfml-audio-d.lib")
 
 /* Internal includes */
 #include "Snake.hpp"
@@ -6,6 +7,7 @@
 /* System includes */
 #include <array>
 #include <shlobj_core.h>
+#include <SFML/Audio.hpp>
 #include <Shlwapi.h>
 #include <vector>
 

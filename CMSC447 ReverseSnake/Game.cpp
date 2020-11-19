@@ -7,6 +7,14 @@ void movePlayer(sf::RectangleShape &shape, sf::Vector2f playerDirection)
 
 void startScreen(sf::RenderWindow &window)
 {
+	sf::SoundBuffer buffer;
+	buffer.loadFromFile("sounds\\EKANS Theme.wav");
+	sf::Sound background;
+	background.setBuffer(buffer);
+	background.setVolume(25);
+	background.setLoop(true);
+	background.play();
+
 	sf::Event event;
 	sf::Font font;
 	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
@@ -122,6 +130,7 @@ void startScreen(sf::RenderWindow &window)
 				else
 				{
 					scoreButtonPressed = true;
+					background.stop();
 					leaderboard(highScores, window);
 					break;
 				}
@@ -142,6 +151,7 @@ void startScreen(sf::RenderWindow &window)
 			}
 			else if (scoreButton.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y)))
 			{
+				background.stop();
 				leaderboard(highScores, window);
 			}
 		}
@@ -155,6 +165,14 @@ void startScreen(sf::RenderWindow &window)
 
 void leaderboard(std::vector<Score*> &highScores, sf::RenderWindow &window)
 {
+	sf::SoundBuffer buffer;
+	buffer.loadFromFile("sounds\\Leaderboard Theme.wav");
+	sf::Sound background;
+	background.setBuffer(buffer);
+	background.setVolume(25);
+	background.setLoop(true);
+	background.play();
+
 	sf::Event event;
 	sf::Font font;
 	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
@@ -207,6 +225,7 @@ void leaderboard(std::vector<Score*> &highScores, sf::RenderWindow &window)
 		window.display();
 		if (event.type == sf::Event::KeyPressed)
 		{
+			background.stop();
 			startScreen(window);
 			break;
 		}
@@ -219,6 +238,17 @@ void leaderboard(std::vector<Score*> &highScores, sf::RenderWindow &window)
 
 void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 {
+	sf::SoundBuffer buffer;
+	buffer.loadFromFile("sounds\\Collision Sound Effect.wav");
+	sf::SoundBuffer buffer2;
+	buffer2.loadFromFile("sounds\\Collision Sound Effect2(player collision).wav");
+	sf::Sound collision;
+	sf::Sound playerCollision;
+	collision.setBuffer(buffer);
+	collision.setVolume(25);
+	playerCollision.setBuffer(buffer2);
+	playerCollision.setVolume(25);
+
 	sf::Font font;
 	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
 	sf::RectangleShape player(sf::Vector2f(16.f, 16.f));
@@ -416,6 +446,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 						snakeLength = snake->getLength();
 						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 						snakeDeath.setPosition(snake->getHead().x, snake->getHead().y);
+						collision.play();
 						delete snake;
 						score += 10 * snakeLength;
 						snake1exists = false;
@@ -431,6 +462,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 						snakeLength = snake->getLength();
 						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 						snakeDeath.setPosition(snake->getHead().x, snake->getHead().y);
+						collision.play();
 						delete snake;
 						score += 10 * snakeLength;
 						snake1exists = false;
@@ -452,6 +484,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 						snakeLength = snake2->getLength();
 						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 						snakeDeath.setPosition(snake2->getHead().x, snake2->getHead().y);
+						collision.play();
 						delete snake2;
 						score += 10 * snakeLength;
 						snake2exists = false;
@@ -467,6 +500,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 						snakeLength = snake2->getLength();
 						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 						snakeDeath.setPosition(snake2->getHead().x, snake2->getHead().y);
+						collision.play();
 						delete snake2;
 						score += 10 * snakeLength;
 						snake2exists = false;
@@ -487,6 +521,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 						snakeLength = snake3->getLength();
 						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 						snakeDeath.setPosition(snake3->getHead().x, snake3->getHead().y);
+						collision.play();
 						delete snake3;
 						score += 10 * snakeLength;
 						snake3exists = false;
@@ -502,6 +537,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 						snakeLength = snake3->getLength();
 						snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 						snakeDeath.setPosition(snake3->getHead().x, snake3->getHead().y);
+						collision.play();
 						delete snake3;
 						score += 10 * snakeLength;
 						snake3exists = false;
@@ -521,6 +557,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 				snakeLength = snake->getLength();
 				snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 				snakeDeath.setPosition(snake->getHead().x, snake->getHead().y);
+				collision.play();
 				delete snake;
 				score += 10 * snakeLength;
 				snake1exists = false;
@@ -536,6 +573,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 				snakeLength = snake2->getLength();
 				snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 				snakeDeath.setPosition(snake2->getHead().x, snake2->getHead().y);
+				collision.play();
 				delete snake2;
 				score += 10 * snakeLength;
 				snake2exists = false;
@@ -551,6 +589,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 				snakeLength = snake3->getLength();
 				snakeDeath.setString("+" + std::to_string(10 * snakeLength));
 				snakeDeath.setPosition(snake3->getHead().x, snake3->getHead().y);
+				collision.play();
 				delete snake3;
 				score += 10 * snakeLength;
 				snake3exists = false;
@@ -564,6 +603,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 		{
 			if (snake->checkCollision(player))
 			{
+				playerCollision.play();
 				collided = true;
 				break;
 			}
@@ -572,6 +612,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 		{
 			if (snake2->checkCollision(player))
 			{
+				playerCollision.play();
 				collided = true;
 				break;
 			}
@@ -580,6 +621,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 		{
 			if (snake3->checkCollision(player))
 			{
+				playerCollision.play();
 				collided = true;
 				break;
 			}
@@ -588,12 +630,14 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 		if (walls[0].getGlobalBounds().intersects(player.getGlobalBounds()) || walls[1].getGlobalBounds().intersects(player.getGlobalBounds())
 			|| walls[2].getGlobalBounds().intersects(player.getGlobalBounds()) || walls[3].getGlobalBounds().intersects(player.getGlobalBounds()))
 		{
+			playerCollision.play();
 			collided = true;
 			break;
 		}
 		// check for collision with food
 		if (food.getGlobalBounds().intersects(player.getGlobalBounds()))
 		{
+			collision.play();
 			float x = rand() % 560 + 48.f;
 			float y = rand() % 560 + 48.f;
 
@@ -605,6 +649,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 		}
 		if (food2.getGlobalBounds().intersects(player.getGlobalBounds()))
 		{
+			collision.play();
 			float x = rand() % 560 + 48.f;
 			float y = rand() % 560 + 48.f;
 
@@ -617,6 +662,7 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 		// check for collision with cookie
 		if (cookie.getGlobalBounds().intersects(player.getGlobalBounds()))
 		{
+			collision.play();
 			cookieClock.restart();
 			float x = rand() % 560 + 48.f;
 			float y = rand() % 560 + 48.f;
@@ -690,7 +736,6 @@ void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 
 	if (collided)
 	{
-
 		endScreen(scoreText, score, highScores, window);
 	}
 }
