@@ -3,7 +3,7 @@ Routes and views for the flask application.
 """
 
 from datetime import datetime
-from flask import jsonify, request, render_template
+from flask import json, jsonify, request, render_template
 from ScoresServer import app
 
 import os
@@ -15,10 +15,8 @@ def home():
     if request.method == 'GET':
         return jsonify(open("scores.json").read())
     elif request.method == 'POST':
-        print(request.data)
-        print(request.json)
         with open("scores.json", "w") as scores:
-            scores.write(request.json)
+            scores.write(json.dumps(request.json))
         return jsonify(success=True)
     return jsonify(success=False)
         

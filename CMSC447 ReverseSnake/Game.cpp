@@ -899,6 +899,9 @@ void loadScores(std::vector<Score*> &scores)
 	PSTR pbFileData = NULL;
 	web::json::value jsonScores;
 
+	// Load global scores
+	getGlobalScores(scores);
+
 	// Get RoamingAppData location
 	hResult = SHGetKnownFolderPath(FOLDERID_RoamingAppData,
 		KF_FLAG_DEFAULT,
@@ -1019,6 +1022,8 @@ void saveScores(std::vector<Score*> &scores)
 		jsonScores[utility::conversions::to_utf16string(score->initials())] = score->score();
 	}
 
+	postGlobalScores(jsonScores);
+
 	utility::string_t stringScores = jsonScores.serialize();
 	std::string fileData = utility::conversions::to_utf8string(stringScores);
 
@@ -1079,4 +1084,54 @@ end:
 		appDataPath = NULL;
 	}
 
+}
+
+void getGlobalScores(std::vector<Score*> &highScores)
+{
+	web::http::client::http_client client(U("https://scores.edc137.com/scores"));
+	
+	web::json::value jsonScores;
+
+	client.request(web::http::methods::GET).then([](const web::http::http_response &response) -> pplx::task<web::json::value> {
+		if (response.status_code() == web::http::status_codes::OK)
+		{
+			OutputDebugStringA("status OK\r\n");
+
+			return response.extract_json();
+		}
+		}).then([&jsonScores](const pplx::task<web::json::value>& task) {
+			try {
+				jsonScores = web::json::value::parse(task.get().as_string());
+			}
+			catch (const web::http::http_exception& e) {
+				OutputDebugStringA(e.what());
+			}
+			catch (const web::json::json_exception& e) {
+				OutputDebugStringA(e.what());
+			}
+
+			})
+			.wait();
+
+	web::json::value::value_type jsonValueType = jsonScores.type();
+
+	if (web::json::value::Null != jsonValueType)
+	{
+		for (web::json::object::const_iterator iter = jsonScores.as_object().cbegin();
+			iter != jsonScores.as_object().cend();
+			++iter)
+		{
+			const utility::string_t initials = iter->first;
+			const int score = iter->second.as_integer();
+
+			highScores.push_back(new Score(score, utility::conversions::to_utf8string(initials)));
+		}
+	}
+}
+
+void postGlobalScores(web::json::value &jsonScores)
+{
+	web::http::client::http_client client(U("https://scores.edc137.com/scores"));
+
+	client.request(web::http::methods::POST, U("/"), jsonScores).wait();
 }

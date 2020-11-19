@@ -16,7 +16,7 @@
 int main()
 {
 	HWND hWnd = GetConsoleWindow();
-	ShowWindow(hWnd, SW_HIDE);
+	//ShowWindow(hWnd, SW_HIDE);
 	sf::RenderWindow window(sf::VideoMode(640, 640), "Ekans");
 
 	// start screen
