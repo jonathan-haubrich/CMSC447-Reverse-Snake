@@ -24,8 +24,9 @@ private:
 };
 
 void startScreen(sf::RenderWindow &window);
-void leaderboard(sf::RenderWindow &window, std::vector<Score*> &highScores);
-void gameLoop(sf::RenderWindow &window);
-void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window);
+void leaderboard(std::vector<Score*> &highScores, sf::RenderWindow &window);
+void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window);
+void endScreen(sf::Text scoreText, int score, std::vector<Score*> &highScores, sf::RenderWindow &window);
 void movePlayer(sf::RectangleShape &shape, sf::Vector2f playerDirection);
 void loadScores(std::vector<Score*> &scores);
+void saveScores(std::vector<Score*> &scores);
