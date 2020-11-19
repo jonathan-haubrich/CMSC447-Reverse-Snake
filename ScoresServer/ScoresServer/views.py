@@ -15,8 +15,20 @@ def home():
     if request.method == 'GET':
         return jsonify(open("scores.json").read())
     elif request.method == 'POST':
+        new_scores = request.json
+        with open("scores.json", "r") as scores:
+            try:
+                leaderboard = json.load(scores)
+                for initial, score in leaderboard.items():
+                    if new_scores.get(initial):
+                        if new_scores[initial] < score:
+                            new_scores[initial] = score
+                    else:
+                        new_scores[initial] = score
+            except Exception as e:
+                print(e)
         with open("scores.json", "w") as scores:
-            scores.write(json.dumps(request.json))
+            scores.write(json.dumps(new_scores))
         return jsonify(success=True)
     return jsonify(success=False)
         

@@ -975,7 +975,6 @@ void loadScores(std::vector<Score*> &scores)
 		0,
 		NULL);
 
-
 	// We're done with path now
 	CoTaskMemFree(appDataPath);
 	appDataPath = NULL;
