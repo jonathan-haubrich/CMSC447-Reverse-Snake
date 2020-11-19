@@ -944,9 +944,6 @@ void loadScores(std::vector<Score*> &scores)
 	PSTR pbFileData = NULL;
 	web::json::value jsonScores;
 
-	// Load global scores
-	getGlobalScores(scores);
-
 	// Get RoamingAppData location
 	hResult = SHGetKnownFolderPath(FOLDERID_RoamingAppData,
 		KF_FLAG_DEFAULT,
@@ -1014,6 +1011,9 @@ void loadScores(std::vector<Score*> &scores)
 	{
 		goto end;
 	}
+
+	// Load global scores
+	getGlobalScores(jsonScores);
 
 	for (web::json::object::const_iterator iter = jsonScores.as_object().cbegin();
 		iter != jsonScores.as_object().cend();
@@ -1131,11 +1131,11 @@ end:
 
 }
 
-void getGlobalScores(std::vector<Score*> &highScores)
+void getGlobalScores(web::json::value &jsonScores)
 {
 	web::http::client::http_client client(U("https://scores.edc137.com/scores"));
 	
-	web::json::value jsonScores;
+	web::json::value globalScores;
 
 	client.request(web::http::methods::GET).then([](const web::http::http_response &response) -> pplx::task<web::json::value> {
 		if (response.status_code() == web::http::status_codes::OK)
@@ -1144,9 +1144,9 @@ void getGlobalScores(std::vector<Score*> &highScores)
 
 			return response.extract_json();
 		}
-		}).then([&jsonScores](const pplx::task<web::json::value>& task) {
+		}).then([&globalScores](const pplx::task<web::json::value>& task) {
 			try {
-				jsonScores = web::json::value::parse(task.get().as_string());
+				globalScores = web::json::value::parse(task.get().as_string());
 			}
 			catch (const web::http::http_exception& e) {
 				OutputDebugStringA(e.what());
@@ -1158,18 +1158,27 @@ void getGlobalScores(std::vector<Score*> &highScores)
 			})
 			.wait();
 
-	web::json::value::value_type jsonValueType = jsonScores.type();
+	web::json::value::value_type jsonValueType = globalScores.type();
 
-	if (web::json::value::Null != jsonValueType)
+	if (web::json::value::Object == jsonValueType)
 	{
-		for (web::json::object::const_iterator iter = jsonScores.as_object().cbegin();
-			iter != jsonScores.as_object().cend();
+		for (web::json::object::const_iterator iter = globalScores.as_object().cbegin();
+			iter != globalScores.as_object().cend();
 			++iter)
 		{
 			const utility::string_t initials = iter->first;
 			const int score = iter->second.as_integer();
 
-			highScores.push_back(new Score(score, utility::conversions::to_utf8string(initials)));
+			try {
+				if (jsonScores.at(initials).as_integer() < score)
+				{
+					jsonScores[initials] = score;
+				}
+			}
+			catch (web::json::json_exception &e)
+			{
+				jsonScores[initials] = score;
+			}
 		}
 	}
 }
