@@ -81,7 +81,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(Projectdir)libs\SFML\include;$(Projectdir)libs\brotli_x64-windows-static\include;$(Projectdir)libs\cpprestsdk_x64-windows-static\include;$(Projectdir)libs\zlib_x64-windows-static\include</IncludePath>
-    <LibraryPath>$(Projectdir)libs\zlib_x64-windows-static\lib;$(Projectdir)libs\SFML\bin;$(Projectdir)libs\cpprestsdk_x64-windows\bin;$(Projectdir)libs\cpprestsdk_x64-windows-static\lib;$(Projectdir)libs\brotli_x64-windows-static\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(Projectdir)libs\zlib_x64-windows-static\lib;$(Projectdir)libs\SFML\lib;$(Projectdir)libs\SFML\bin;$(Projectdir)libs\cpprestsdk_x64-windows\bin;$(Projectdir)libs\cpprestsdk_x64-windows-static\lib;$(Projectdir)libs\brotli_x64-windows-static\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
