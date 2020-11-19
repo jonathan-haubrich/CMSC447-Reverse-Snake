@@ -13,6 +13,7 @@
 
 /* External library includes */
 #include <cpprest/json.h>
+#include <cpprest/http_client.h>
 
 class Score {
 public:
@@ -32,3 +33,5 @@ void endScreen(sf::Text scoreText, int score, std::vector<Score*> &highScores, s
 void movePlayer(sf::RectangleShape &shape, sf::Vector2f playerDirection);
 void loadScores(std::vector<Score*> &scores);
 void saveScores(std::vector<Score*> &scores);
+void getGlobalScores(std::vector<Score*> &highScores);
+void postGlobalScores(web::json::value &jsonScores);
