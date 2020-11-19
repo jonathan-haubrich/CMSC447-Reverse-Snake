@@ -1,3 +1,4 @@
+/* System includes */
 #include <iostream>
 #include <fstream>  
 #include <array>
@@ -6,6 +7,10 @@
 #include <Windows.h>
 #include <time.h>
 
+/* External library includes */
+#include <cpprest/json.h>
+
+/* Internal includes */
 #include "Game.hpp"
 
 int main()

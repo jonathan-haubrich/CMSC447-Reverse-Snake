@@ -27,6 +27,10 @@ void startScreen(sf::RenderWindow &window)
 	bool scoreButtonSelected = false;
 	bool scoreButtonPressed = false;
 
+	std::vector<Score*> highScores;
+
+	loadScores(highScores);
+
 	window.clear();
 	window.draw(title);
 	window.draw(startButton);
@@ -35,7 +39,22 @@ void startScreen(sf::RenderWindow &window)
 
 	while (window.waitEvent(event))
 	{
-		if (event.type == sf::Event::Closed)
+		if (event.type == sf::Event::MouseMoved)
+		{
+			if (startButton.getGlobalBounds().contains(event.mouseMove.x,
+				event.mouseMove.y))
+			{
+				startButton.setFillColor(sf::Color::Green);
+				scoreButton.setFillColor(sf::Color::White);
+			}
+			if (scoreButton.getGlobalBounds().contains(event.mouseMove.x,
+				event.mouseMove.y))
+			{
+				startButton.setFillColor(sf::Color::White);
+				scoreButton.setFillColor(sf::Color::Green);
+			}
+		}
+		else if (event.type == sf::Event::Closed)
 		{
 			window.close();
 		}
@@ -51,11 +70,7 @@ void startScreen(sf::RenderWindow &window)
 					scoreButtonSelected = false;
 					startButton.setFillColor(sf::Color::Green);
 					scoreButton.setFillColor(sf::Color::White);
-					window.clear();
-					window.draw(title);
-					window.draw(startButton);
-					window.draw(scoreButton);
-					window.display();
+
 				}
 				break;
 			}
@@ -67,11 +82,7 @@ void startScreen(sf::RenderWindow &window)
 					scoreButtonSelected = false;
 					startButton.setFillColor(sf::Color::Green);
 					scoreButton.setFillColor(sf::Color::White);
-					window.clear();
-					window.draw(title);
-					window.draw(startButton);
-					window.draw(scoreButton);
-					window.display();
+
 				}
 				break;
 			}
@@ -83,11 +94,6 @@ void startScreen(sf::RenderWindow &window)
 					scoreButtonSelected = true;
 					startButton.setFillColor(sf::Color::White);
 					scoreButton.setFillColor(sf::Color::Green);
-					window.clear();
-					window.draw(title);
-					window.draw(startButton);
-					window.draw(scoreButton);
-					window.display();
 				}
 				break;
 			}
@@ -99,11 +105,6 @@ void startScreen(sf::RenderWindow &window)
 					scoreButtonSelected = true;
 					startButton.setFillColor(sf::Color::White);
 					scoreButton.setFillColor(sf::Color::Green);
-					window.clear();
-					window.draw(title);
-					window.draw(startButton);
-					window.draw(scoreButton);
-					window.display();
 				}
 				break;
 			}
@@ -115,13 +116,13 @@ void startScreen(sf::RenderWindow &window)
 				if (startButtonSelected)
 				{
 					startButtonPressed = true;
-					gameLoop(window);
+					gameLoop(highScores, window);
 					break;
 				}
 				else
 				{
 					scoreButtonPressed = true;
-					leaderboard(window);
+					leaderboard(highScores, window);
 					break;
 				}
 
@@ -133,10 +134,26 @@ void startScreen(sf::RenderWindow &window)
 			}
 			}
 		}
+		else if (event.type == sf::Event::MouseButtonReleased)
+		{
+			if (startButton.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y)))
+			{
+				gameLoop(highScores, window);
+			}
+			else if (scoreButton.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y)))
+			{
+				leaderboard(highScores, window);
+			}
+		}
+		window.clear();
+		window.draw(title);
+		window.draw(startButton);
+		window.draw(scoreButton);
+		window.display();
 	}
 }
 
-void leaderboard(sf::RenderWindow &window)
+void leaderboard(std::vector<Score*> &highScores, sf::RenderWindow &window)
 {
 	sf::Event event;
 	sf::Font font;
@@ -151,11 +168,41 @@ void leaderboard(sf::RenderWindow &window)
 	sf::Text text("Press any key to continue...", font, 16);
 	text.setOrigin(text.getLocalBounds().width / 2.f, text.getLocalBounds().height / 2.f);
 	text.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f + 240.f);
+
+	std::vector<std::pair<sf::Text, sf::Text>> listings;
+	int highScoreOrigin = 50;
+
+	std::vector<Score*>::iterator end = (highScores.size() > 5) ? highScores.begin() + 5 : highScores.end();
+	for (auto iter = highScores.begin(); iter != end; ++iter)
+	{
+		Score *score = *iter;
+		sf::Text initials(score->initials(), font, 18);
+		sf::Text highScore(std::to_string(score->score()), font, 18);
+
+		initials.setOrigin(0, initials.getLocalBounds().height / 2.f);
+		highScore.setOrigin(highScore.getLocalBounds().width,
+			highScore.getLocalBounds().height / 2.f);
+
+		initials.setPosition(title.getGlobalBounds().left,
+			scores.getPosition().y + highScoreOrigin);
+		highScore.setPosition(title.getGlobalBounds().left + title.getLocalBounds().width,
+			scores.getPosition().y + highScoreOrigin);
+
+		listings.push_back({ initials, highScore });
+
+		highScoreOrigin += 30;
+	}
+
 	while (window.isOpen() && window.waitEvent(event))
 	{
 		window.clear();
 		window.draw(title);
 		window.draw(scores);
+		for (auto iter = listings.begin(); iter != listings.end(); ++iter)
+		{
+			window.draw(iter->first);
+			window.draw(iter->second);
+		}
 		window.draw(text);
 		window.display();
 		if (event.type == sf::Event::KeyPressed)
@@ -163,10 +210,14 @@ void leaderboard(sf::RenderWindow &window)
 			startScreen(window);
 			break;
 		}
+		else if (event.type == sf::Event::Closed)
+		{
+			window.close();
+		}
 	}
 }
 
-void gameLoop(sf::RenderWindow &window)
+void gameLoop(std::vector<Score*> &highScores, sf::RenderWindow &window)
 {
 	sf::Font font;
 	font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
@@ -639,11 +690,12 @@ void gameLoop(sf::RenderWindow &window)
 
 	if (collided)
 	{
-		endScreen(scoreText, score, window);
+
+		endScreen(scoreText, score, highScores, window);
 	}
 }
 
-void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
+void endScreen(sf::Text scoreText, int score, std::vector<Score*> &highScores, sf::RenderWindow &window)
 {
 	sf::Event event;
 	sf::Font font;
@@ -660,31 +712,82 @@ void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
 	gameOver.setOrigin(gameOver.getLocalBounds().width / 2.f, gameOver.getLocalBounds().height / 2.f);
 	gameOver.setPosition(window.getSize().x / 2.f, window.getSize().y / 2 - 150.f);
 
-	sf::Text exitButton("Exit", font, 20);
-	exitButton.setOrigin(exitButton.getLocalBounds().width / 2, exitButton.getLocalBounds().height / 2);
-	exitButton.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
-
 	sf::Text retryButton("Retry", font, 20);
 	retryButton.setOrigin(retryButton.getLocalBounds().width / 2, retryButton.getLocalBounds().height / 2);
-	retryButton.setPosition(window.getSize().x / 2.f, window.getSize().y / 2 - 25.f);
+	retryButton.setPosition(window.getSize().x / 2.f, window.getSize().y / 2 + 200.f);
 	retryButton.setFillColor(sf::Color::Green);
+
+	sf::Text exitButton("Exit", font, 20);
+	exitButton.setOrigin(exitButton.getLocalBounds().width / 2, exitButton.getLocalBounds().height / 2);
+	exitButton.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f + 225.f);
 
 	scoreText.setOrigin(scoreText.getLocalBounds().width / 2.f, scoreText.getLocalBounds().height / 2.f);
 	scoreText.setPosition(window.getSize().x / 2 - 15.f, window.getSize().y / 2 - 100.f);
 	scoreText.setCharacterSize(26);
+
+	sf::RectangleShape playerInput(sf::Vector2f(150, 30));
+	playerInput.setFillColor(sf::Color::White);
+	playerInput.setOrigin(playerInput.getLocalBounds().width / 2.f,
+		playerInput.getLocalBounds().height / 2.f);
+	playerInput.setPosition(window.getSize().x / 2.f, window.getSize().y / 2.f);
+
+	std::string playerInitials;
+	sf::Text playerText("", font, 20);
+	playerText.setFillColor(sf::Color::Black);
+	playerText.setOrigin(playerText.getLocalBounds().width / 2.f,
+		playerText.getLocalBounds().height / 2.f);
+	playerText.setPosition(playerInput.getGlobalBounds().left + (playerInput.getGlobalBounds().width / 2.f),
+		playerInput.getGlobalBounds().top + (playerInput.getGlobalBounds().height / 2.f));
 
 	window.clear();
 	window.draw(gameOver);
 	window.draw(scoreText);
 	window.draw(exitButton);
 	window.draw(retryButton);
+	window.draw(playerInput);
+	window.draw(playerText);
 	window.display();
 
 	while (window.waitEvent(event))
 	{
-		if (event.type == sf::Event::Closed)
+		if (event.type == sf::Event::MouseMoved)
 		{
+			if (retryButton.getGlobalBounds().contains(event.mouseMove.x,
+				event.mouseMove.y))
+			{
+				retryButton.setFillColor(sf::Color::Green);
+				exitButton.setFillColor(sf::Color::White);
+			}
+			if (exitButton.getGlobalBounds().contains(event.mouseMove.x,
+				event.mouseMove.y))
+			{
+				exitButton.setFillColor(sf::Color::Green);
+				retryButton.setFillColor(sf::Color::White);
+			}
+		}
+		else if (event.type == sf::Event::Closed)
+		{
+			saveScores(highScores);
 			window.close();
+		}
+		else if (event.type == sf::Event::TextEntered)
+		{
+			if (event.text.unicode == '\b')
+			{
+				if (playerInitials.size() > 0)
+				{
+					playerInitials.erase(playerInitials.size() - 1, 1);
+				}
+			}
+			else if (playerInitials.size() < 3)
+			{
+				playerInitials += toupper(static_cast<char>(event.text.unicode));
+			}
+			playerText.setString(playerInitials);
+			playerText.setOrigin(playerText.getLocalBounds().width / 2.f,
+				playerText.getLocalBounds().height / 2.f);
+			playerText.setPosition(playerInput.getGlobalBounds().left + (playerInput.getGlobalBounds().width / 2.f),
+				playerInput.getGlobalBounds().top + (playerInput.getGlobalBounds().height / 2.f) - 5);
 		}
 		else if (event.type == sf::Event::KeyPressed)
 		{
@@ -698,29 +801,6 @@ void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
 					ExitButtonSelected = false;
 					retryButton.setFillColor(sf::Color::Green);
 					exitButton.setFillColor(sf::Color::White);
-					window.clear();
-					window.draw(gameOver);
-					window.draw(scoreText);
-					window.draw(exitButton);
-					window.draw(retryButton);
-					window.display();
-				}
-				break;
-			}
-			case sf::Keyboard::W:
-			{
-				if (!RetryButtonSelected)
-				{
-					RetryButtonSelected = true;
-					ExitButtonSelected = false;
-					retryButton.setFillColor(sf::Color::Green);
-					exitButton.setFillColor(sf::Color::White);
-					window.clear();
-					window.draw(gameOver);
-					window.draw(scoreText);
-					window.draw(exitButton);
-					window.draw(retryButton);
-					window.display();
 				}
 				break;
 			}
@@ -732,29 +812,6 @@ void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
 					ExitButtonSelected = true;
 					exitButton.setFillColor(sf::Color::Green);
 					retryButton.setFillColor(sf::Color::White);
-					window.clear();
-					window.draw(gameOver);
-					window.draw(scoreText);
-					window.draw(exitButton);
-					window.draw(retryButton);
-					window.display();
-				}
-				break;
-			}
-			case sf::Keyboard::S:
-			{
-				if (!ExitButtonSelected)
-				{
-					RetryButtonSelected = false;
-					ExitButtonSelected = true;
-					exitButton.setFillColor(sf::Color::Green);
-					retryButton.setFillColor(sf::Color::White);
-					window.clear();
-					window.draw(gameOver);
-					window.draw(scoreText);
-					window.draw(exitButton);
-					window.draw(retryButton);
-					window.display();
 				}
 				break;
 			}
@@ -768,12 +825,22 @@ void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
 					RetryButtonPressed = true;
 					//window.close();
 					//main();
-					gameLoop(window);
+					if (playerInitials.size() > 0)
+					{
+						highScores.push_back(new Score(score, playerInitials));
+					}
+					saveScores(highScores);
+					gameLoop(highScores, window);
 					break;
 				}
 				else
 				{
 					ExitButtonPressed = true;
+					if (playerInitials.size() > 0)
+					{
+						highScores.push_back(new Score(score, playerInitials));
+					}
+					saveScores(highScores);
 					window.close();
 					break;
 				}
@@ -782,9 +849,234 @@ void endScreen(sf::Text scoreText, int score, sf::RenderWindow &window)
 			}
 			default:
 			{
-				break;
 			}
 			}
 		}
+		else if(event.type == sf::Event::MouseButtonReleased)
+		{
+			if (exitButton.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y)))
+			{
+				if (playerInitials.size() > 0)
+				{
+					highScores.push_back(new Score(score, playerInitials));
+				}
+				saveScores(highScores);
+				window.close();
+			}
+			else if (retryButton.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y)))
+			{
+				if (playerInitials.size() > 0)
+				{
+					highScores.push_back(new Score(score, playerInitials));
+				}
+				saveScores(highScores);
+				gameLoop(highScores, window);
+			}
+		}
+
+		window.clear();
+		window.draw(gameOver);
+		window.draw(scoreText);
+		window.draw(exitButton);
+		window.draw(retryButton);
+		window.draw(playerInput);
+		window.draw(playerText);
+		window.display();
 	}
+}
+
+void loadScores(std::vector<Score*> &scores)
+{
+	HRESULT hResult = 0;
+	PWSTR appDataPath = NULL;
+	LPCWSTR gameFolder = L"Ekans",
+		scoresFileName = L"scores.json";
+	WCHAR gameFolderAbsPath[MAX_PATH] = { 0 },
+		scoresFileAbsPath[MAX_PATH] = { 0 };
+	HANDLE hScoresFile = INVALID_HANDLE_VALUE;
+	DWORD dwFileSize = 0,
+		dwBytesRead = 0;
+	PSTR pbFileData = NULL;
+	web::json::value jsonScores;
+
+	// Get RoamingAppData location
+	hResult = SHGetKnownFolderPath(FOLDERID_RoamingAppData,
+		KF_FLAG_DEFAULT,
+		NULL,
+		&appDataPath);
+
+	if (FAILED(hResult))
+	{
+		goto end;
+	}
+
+	if (NULL == PathCombineW(gameFolderAbsPath, appDataPath, gameFolder)
+		|| NULL == PathCombineW(scoresFileAbsPath, gameFolderAbsPath, scoresFileName))
+	{
+		goto end;
+	}
+
+	if (ERROR == CreateDirectoryW(gameFolderAbsPath, NULL)
+		&& ERROR_ALREADY_EXISTS != GetLastError())
+	{
+		goto end;
+	}
+
+	hScoresFile = CreateFileW(scoresFileAbsPath,
+		GENERIC_ALL,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_ALWAYS,
+		0,
+		NULL);
+
+
+	// We're done with path now
+	CoTaskMemFree(appDataPath);
+	appDataPath = NULL;
+
+	if (INVALID_HANDLE_VALUE == hScoresFile)
+	{
+		goto end;
+	}
+
+	dwFileSize = GetFileSize(hScoresFile, NULL);
+	if (0 == dwFileSize)
+	{
+		goto end;
+	}
+
+	pbFileData = (PSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwFileSize);
+	if(NULL == pbFileData)
+	{
+		goto end;
+	}
+
+	if (FALSE == ReadFile(hScoresFile,
+		pbFileData,
+		dwFileSize,
+		&dwBytesRead,
+		NULL))
+	{
+		goto end;
+	}
+
+	jsonScores = web::json::value::parse(std::string(pbFileData));
+	if (0 == jsonScores.size())
+	{
+		goto end;
+	}
+
+	for (web::json::object::const_iterator iter = jsonScores.as_object().cbegin();
+		iter != jsonScores.as_object().cend();
+		++iter)
+	{
+		const utility::string_t initials = iter->first;
+		const int score = iter->second.as_integer();
+
+		scores.push_back(new Score(score, utility::conversions::to_utf8string(initials)));
+	}
+
+	// Sort in reverse so highest is first
+	std::sort(scores.rbegin(), scores.rend(), [](Score *lhs, Score *rhs) {
+		return lhs->score() < rhs->score();
+	});
+
+end:
+	if (pbFileData)
+	{
+		HeapFree(GetProcessHeap(), 0, pbFileData);
+		pbFileData = NULL;
+	}
+	if (INVALID_HANDLE_VALUE != hScoresFile)
+	{
+		CloseHandle(hScoresFile);
+		hScoresFile = INVALID_HANDLE_VALUE;
+	}
+	if (appDataPath) {
+		CoTaskMemFree(appDataPath);
+		appDataPath = NULL;
+	}
+}
+
+void saveScores(std::vector<Score*> &scores)
+{
+	HRESULT hResult = 0;
+	PWSTR appDataPath = NULL;
+	LPCWSTR gameFolder = L"Ekans",
+		scoresFileName = L"scores.json";
+	WCHAR gameFolderAbsPath[MAX_PATH] = { 0 },
+		scoresFileAbsPath[MAX_PATH] = { 0 };
+	HANDLE hScoresFile = INVALID_HANDLE_VALUE;
+	DWORD dwBytesWritten = 0;
+	web::json::value jsonScores;
+
+	for (std::vector<Score*>::iterator iter = scores.begin();
+		iter != scores.end();
+		++iter)
+	{
+		Score *score = *iter;
+		jsonScores[utility::conversions::to_utf16string(score->initials())] = score->score();
+	}
+
+	utility::string_t stringScores = jsonScores.serialize();
+	std::string fileData = utility::conversions::to_utf8string(stringScores);
+
+	// Get RoamingAppData location
+	hResult = SHGetKnownFolderPath(FOLDERID_RoamingAppData,
+		KF_FLAG_DEFAULT,
+		NULL,
+		&appDataPath);
+
+	if (FAILED(hResult))
+	{
+		goto end;
+	}
+
+	if (NULL == PathCombineW(gameFolderAbsPath, appDataPath, gameFolder)
+		|| NULL == PathCombineW(scoresFileAbsPath, gameFolderAbsPath, scoresFileName))
+	{
+		goto end;
+	}
+
+	if (ERROR == CreateDirectoryW(gameFolderAbsPath, NULL)
+		&& ERROR_ALREADY_EXISTS != GetLastError())
+	{
+		goto end;
+	}
+
+	hScoresFile = CreateFileW(scoresFileAbsPath,
+		GENERIC_ALL,
+		FILE_SHARE_READ,
+		NULL,
+		CREATE_ALWAYS,
+		0,
+		NULL);
+
+	// We're done with path now
+	CoTaskMemFree(appDataPath);
+	appDataPath = NULL;
+
+	if (INVALID_HANDLE_VALUE == hScoresFile)
+	{
+		goto end;
+	}
+
+	WriteFile(hScoresFile,
+		fileData.data(),
+		fileData.length(),
+		&dwBytesWritten,
+		NULL);
+	
+end:
+	if (INVALID_HANDLE_VALUE != hScoresFile)
+	{
+		CloseHandle(hScoresFile);
+		hScoresFile = INVALID_HANDLE_VALUE;
+	}
+	if (appDataPath) {
+		CoTaskMemFree(appDataPath);
+		appDataPath = NULL;
+	}
+
 }

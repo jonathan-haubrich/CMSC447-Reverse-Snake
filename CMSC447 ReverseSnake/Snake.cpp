@@ -45,8 +45,8 @@ void Snake::grow()
 void Snake::move(sf::Vector2f targetPosition)
 {
 	int direction = 0;
-	int targetX = 0;
-	int targetY = 0;
+	float targetX = 0;
+	float targetY = 0;
 	sf::Vector2f oldPosition = _head->_segment.getPosition(),
 		newPosition = oldPosition,
 		oldTail = _tail->_segment.getPosition(),
