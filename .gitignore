@@ -6,3 +6,8 @@
 /CMSC447 ReverseSnake/Debug
 /CMSC447 ReverseSnake/x64/Release
 /x64/Release
+/ScoresServer/certs/fullchain.pem
+/ScoresServer/certs/privkey.pem
+/ScoresServer/server
+/ScoresServer/ScoresServer/__pycache__
+/ScoresServer/scores.json
