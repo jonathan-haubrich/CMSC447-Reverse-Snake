@@ -11,3 +11,4 @@
 /ScoresServer/server
 /ScoresServer/ScoresServer/__pycache__
 /ScoresServer/scores.json
+/x64/cov-build
